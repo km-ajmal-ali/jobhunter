@@ -92,15 +92,13 @@ jobs:
 
             # Create .env with defaults if it doesn't exist
             if [ ! -f .env ]; then
-              cat > .env << 'EOF'
-DB_USER=jobuser
-DB_PASSWORD=$(openssl rand -base64 32)
-DB_NAME=jobhunter
-DEBUG=false
-CORS_ORIGINS=http://localhost
-GHCR_OWNER=${{ env.GHCR_OWNER }}
-SCRAPER_TIER2_ENABLED=false
-EOF
+              echo "DB_USER=jobuser" > .env
+              echo "DB_PASSWORD=$(openssl rand -base64 32)" >> .env
+              echo "DB_NAME=jobhunter" >> .env
+              echo "DEBUG=false" >> .env
+              echo "CORS_ORIGINS=http://localhost" >> .env
+              echo "GHCR_OWNER=${{ env.GHCR_OWNER }}" >> .env
+              echo "SCRAPER_TIER2_ENABLED=false" >> .env
               echo ".env created with defaults"
             fi
 
