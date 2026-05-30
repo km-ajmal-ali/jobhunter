@@ -70,10 +70,6 @@ services:
       - "0.0.0.0:80:80"
       # Uncomment after domain setup:
       # - "443:443"
-    volumes:
-      # Uncomment after domain setup for SSL certs:
-      # - /etc/letsencrypt:/etc/letsencrypt:ro
-
 volumes:
   pgdata:
     driver: local
