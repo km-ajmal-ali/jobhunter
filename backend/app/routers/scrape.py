@@ -1,15 +1,16 @@
 """
 Manual scrape trigger endpoint.
 
-Allows ad-hoc execution of Tier 1 scrapers via the API.
-Tier 2 scrapers can only be triggered manually if ENABLED in config.
+Requires X-API-Key header matching SCRAPE_API_KEY config.
 """
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header, HTTPException
 
+from app.config import settings
 from app.scrapers.scheduler import run_scrapers_tier1
 
 logger = logging.getLogger(__name__)
@@ -18,14 +19,9 @@ router = APIRouter(prefix="/api/scrape", tags=["scrape"])
 
 
 @router.post("/trigger")
-async def trigger_scrape():
-    """
-    Manually trigger all Tier 1 scrapers immediately.
-
-    Useful for testing or forcing an update outside the scheduled window.
-    Tier 2 scrapers are excluded (only run on schedule in production).
-
-    Returns a summary of each scraper's result.
-    """
+async def trigger_scrape(x_api_key: Annotated[str | None, Header()] = None):
+    if settings.SCRAPE_API_KEY:
+        if not x_api_key or x_api_key != settings.SCRAPE_API_KEY:
+            raise HTTPException(status_code=403, detail="Invalid or missing API key")
     results = await run_scrapers_tier1()
     return {"triggered": True, "results": results}

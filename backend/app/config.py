@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     Leave empty to connect directly.
     """
 
+    # ── Security ──────────────────────────────────────────────────────
+    SCRAPE_API_KEY: str = ""
+    """If set, POST /api/scrape/trigger requires X-API-Key header matching this value."""
+
     # ── CORS ──────────────────────────────────────────────────────────
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
     """Comma-separated allowed CORS origins."""
