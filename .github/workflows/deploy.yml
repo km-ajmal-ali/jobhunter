@@ -55,8 +55,6 @@ jobs:
           file: Dockerfile.backend
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.GHCR_OWNER }}/jobhunter-backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       # ── Build & push frontend ──────────────────────────────────────
       - name: Build and push frontend image
@@ -66,8 +64,6 @@ jobs:
           file: Dockerfile.frontend
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.GHCR_OWNER }}/jobhunter-frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       # ── Deploy to VPS ──────────────────────────────────────────────
       - name: Deploy to VPS via SSH
