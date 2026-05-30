@@ -73,7 +73,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || '22' }}
-          source: "docker-compose.yml,nginx/nginx.conf"
+          source: "docker-compose.yml"
           target: "/opt/jobhunter"
           strip_components: 0
 
@@ -87,7 +87,7 @@ jobs:
           port: ${{ secrets.SSH_PORT || '22' }}
           script: |
             set -e
-            mkdir -p /opt/jobhunter/nginx
+            mkdir -p /opt/jobhunter
             cd /opt/jobhunter
 
             # Create .env with defaults if it doesn't exist
