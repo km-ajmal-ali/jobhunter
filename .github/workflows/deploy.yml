@@ -96,10 +96,16 @@ jobs:
               echo "DB_PASSWORD=$(openssl rand -base64 32)" >> .env
               echo "DB_NAME=jobhunter" >> .env
               echo "DEBUG=false" >> .env
-              echo "CORS_ORIGINS=http://localhost" >> .env
+              echo "CORS_ORIGINS=http://localhost,https://visajobsforyou.com" >> .env
               echo "GHCR_OWNER=${{ env.GHCR_OWNER }}" >> .env
               echo "SCRAPER_TIER2_ENABLED=false" >> .env
               echo ".env created with defaults"
+            fi
+
+            # Ensure CORS_ORIGINS includes the domain
+            if [ -f .env ] && ! grep -q "visajobsforyou.com" .env; then
+              echo "CORS_ORIGINS=http://localhost,https://visajobsforyou.com" >> .env
+              echo "CORS_ORIGINS updated with domain"
             fi
 
             # Log in to GHCR
