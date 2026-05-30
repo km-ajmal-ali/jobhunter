@@ -65,15 +65,15 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.GHCR_OWNER }}/jobhunter-frontend:latest
 
-      # ── Copy config files to VPS ─────────────────────────────────────
-      - name: Copy config files to VPS
+      # ── Copy files to VPS ────────────────────────────────────────────
+      - name: Copy files to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || '22' }}
-          source: "docker-compose.yml"
+          source: "docker-compose.yml,scripts/deploy-domain.sh"
           target: "/opt/jobhunter"
           strip_components: 0
 
