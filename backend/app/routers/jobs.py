@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, Query, Request, HTTPException
 from sqlalchemy import func, select, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.limiter import limiter
 from app.models import Job, ScrapeLog, ScrapeStatus
