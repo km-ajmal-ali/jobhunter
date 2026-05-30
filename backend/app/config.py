@@ -64,6 +64,18 @@ class Settings(BaseSettings):
     SCRAPE_API_KEY: str = ""
     """If set, POST /api/scrape/trigger requires X-API-Key header matching this value."""
 
+    API_RATE_LIMIT: str = "60/minute"
+    """Max requests per IP per minute for API endpoints (slowapi format)."""
+
+    ALLOWED_ORIGINS: str = ""
+    """
+    Comma-separated origins allowed to access the API.
+    If set, only requests with a matching Origin or Referer header are accepted.
+    Leave empty to allow all (no referer check).
+    Example: https://visajobsforyou.com,http://localhost:5173
+    This prevents direct curl/script access from unknown origins.
+    """
+
     # ── CORS ──────────────────────────────────────────────────────────
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
     """Comma-separated allowed CORS origins."""

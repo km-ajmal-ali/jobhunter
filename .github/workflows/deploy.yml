@@ -97,6 +97,7 @@ jobs:
               echo "DB_NAME=jobhunter" >> .env
               echo "DEBUG=false" >> .env
               echo "CORS_ORIGINS=http://localhost,https://visajobsforyou.com" >> .env
+              echo "ALLOWED_ORIGINS=https://visajobsforyou.com,http://localhost" >> .env
               echo "SCRAPE_API_KEY=$(openssl rand -hex 16)" >> .env
               echo "GHCR_OWNER=${{ env.GHCR_OWNER }}" >> .env
               echo "SCRAPER_TIER2_ENABLED=false" >> .env
@@ -106,6 +107,7 @@ jobs:
             # Ensure existing .env has required keys
             if [ -f .env ]; then
               grep -q "CORS_ORIGINS=.*visajobsforyou.com" .env || echo "CORS_ORIGINS=http://localhost,https://visajobsforyou.com" >> .env
+              grep -q "ALLOWED_ORIGINS=" .env || echo "ALLOWED_ORIGINS=https://visajobsforyou.com,http://localhost" >> .env
               grep -q "SCRAPE_API_KEY=" .env || echo "SCRAPE_API_KEY=$(openssl rand -hex 16)" >> .env
             fi
 

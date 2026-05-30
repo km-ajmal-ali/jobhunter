@@ -11,11 +11,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, Request, HTTPException
 from sqlalchemy import func, select, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.limiter import limiter
 from app.models import Job, ScrapeLog, ScrapeStatus
 from app.schemas import (
     JobListResponse,
@@ -31,7 +32,9 @@ router = APIRouter(prefix="/api", tags=["jobs"])
 # ── GET /api/jobs ───────────────────────────────────────────────────────
 
 @router.get("/jobs", response_model=JobListResponse)
+@limiter.limit(settings.API_RATE_LIMIT)
 async def list_jobs(
+    request: Request,
     q: str | None = Query(None, description="Full-text search across title, company, location"),
     location: str | None = Query(None, description="Filter by location (partial match)"),
     source: str | None = Query(None, description="Filter by source name"),
@@ -91,7 +94,9 @@ async def list_jobs(
 # ── GET /api/jobs/{id} ──────────────────────────────────────────────────
 
 @router.get("/jobs/{job_id}", response_model=JobResponse)
+@limiter.limit(settings.API_RATE_LIMIT)
 async def get_job(
+    request: Request,
     job_id: int,
     db: AsyncSession = Depends(get_db),
 ) -> JobResponse:
@@ -112,7 +117,9 @@ async def get_job(
 # ── GET /api/sources ────────────────────────────────────────────────────
 
 @router.get("/sources", response_model=SourcesResponse)
+@limiter.limit(settings.API_RATE_LIMIT)
 async def list_sources(
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> SourcesResponse:
     """
@@ -161,7 +168,9 @@ async def list_sources(
 # ── GET /api/stats ──────────────────────────────────────────────────────
 
 @router.get("/stats", response_model=StatsResponse)
+@limiter.limit(settings.API_RATE_LIMIT)
 async def get_stats(
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> StatsResponse:
     """
