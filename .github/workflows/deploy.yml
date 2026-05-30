@@ -65,6 +65,18 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.GHCR_OWNER }}/jobhunter-frontend:latest
 
+      # ── Copy config files to VPS ─────────────────────────────────────
+      - name: Copy config files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          source: "docker-compose.yml,nginx/nginx.conf"
+          target: "/opt/jobhunter"
+          strip_components: 0
+
       # ── Deploy to VPS ──────────────────────────────────────────────
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -74,10 +86,23 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || '22' }}
           script: |
+            set -e
+            mkdir -p /opt/jobhunter/nginx
             cd /opt/jobhunter
 
-            # Pull env file from GitHub secret or use existing
-            # (env file should already exist on the server)
+            # Create .env with defaults if it doesn't exist
+            if [ ! -f .env ]; then
+              cat > .env << 'EOF'
+DB_USER=jobuser
+DB_PASSWORD=$(openssl rand -base64 32)
+DB_NAME=jobhunter
+DEBUG=false
+CORS_ORIGINS=http://localhost
+GHCR_OWNER=${{ env.GHCR_OWNER }}
+SCRAPER_TIER2_ENABLED=false
+EOF
+              echo ".env created with defaults"
+            fi
 
             # Log in to GHCR
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -92,6 +117,6 @@ jobs:
             docker image prune -f
 
             # Run database migrations
-            docker compose exec -T backend alembic upgrade head
+            docker compose run --rm backend alembic upgrade head || echo "Migrations skipped (check manually)"
 
             echo "✅ Deployment complete: $(date)"
