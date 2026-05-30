@@ -1,0 +1,101 @@
+# =============================================================================
+# GitHub Actions CI/CD Pipeline for JobHunter
+#
+# On every push to the `main` branch:
+#   1. Builds frontend and backend Docker images
+#   2. Pushes images to GitHub Container Registry (GHCR)
+#   3. SSHs into the VPS and deploys with docker compose
+#
+# Prerequisites:
+#   - Add these secrets to your GitHub repo:
+#     - GHCR_TOKEN:    A GitHub PAT with `write:packages` scope
+#     - SSH_PRIVATE_KEY: Your VPS SSH private key
+#     - SSH_HOST:       VPS IP address
+#     - SSH_USER:       VPS SSH username (usually `root`)
+#     - SSH_PORT:       SSH port (usually 22)
+# =============================================================================
+
+name: Deploy JobHunter
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  REGISTRY: ghcr.io
+  GHCR_OWNER: ${{ vars.GHCR_OWNER || github.repository_owner }}
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # ── Checkout ───────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Log in to GHCR ─────────────────────────────────────────────
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      # ── Build & push backend ───────────────────────────────────────
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.backend
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.GHCR_OWNER }}/jobhunter-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Build & push frontend ──────────────────────────────────────
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.frontend
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.GHCR_OWNER }}/jobhunter-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Deploy to VPS ──────────────────────────────────────────────
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          script: |
+            cd /opt/jobhunter
+
+            # Pull env file from GitHub secret or use existing
+            # (env file should already exist on the server)
+
+            # Log in to GHCR
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Pull latest images
+            docker compose pull
+
+            # Recreate containers with new images
+            docker compose up -d --remove-orphans
+
+            # Clean up old images
+            docker image prune -f
+
+            # Run database migrations
+            docker compose exec -T backend alembic upgrade head
+
+            echo "✅ Deployment complete: $(date)"
