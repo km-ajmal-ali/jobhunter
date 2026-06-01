@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchJob } from "../api/jobs";
 import AdSlot from "../components/AdSlot";
+import SafeHtml from "../components/SafeHtml";
 import type { Job } from "../types";
 
 /**
@@ -149,9 +150,10 @@ export default function JobDetail() {
             {job.description && (
               <div className="mt-6 border-t border-gray-100 pt-6">
                 <h2 className="mb-3 text-lg font-semibold text-gray-900">Job Description</h2>
-                <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-line">
-                  {job.description}
-                </div>
+                <SafeHtml
+                  html={job.description}
+                  className="prose prose-sm prose-gray max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-primary-600 [&_a]:underline"
+                />
               </div>
             )}
 

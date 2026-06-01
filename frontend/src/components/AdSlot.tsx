@@ -53,7 +53,7 @@ export default function AdSlot({
         ref={adRef}
         className="adsbygoogle"
         style={{ display: "block" }}
-        data-ad-client="ca-pub-REPLACE_WITH_YOUR_ID"
+        data-ad-client="ca-pub-6872881712264544"
         data-ad-slot={slot}
         data-ad-format={format}
         data-full-width-responsive={fullWidth ? "true" : "false"}
