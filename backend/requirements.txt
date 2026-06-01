@@ -25,3 +25,4 @@ slowapi==0.1.9
 # Utilities
 python-dateutil==2.8.2
 tenacity==8.2.3
+pycountry==23.12.11

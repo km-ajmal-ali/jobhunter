@@ -121,7 +121,7 @@ class VisaSponsorJobsScraper(BaseScraper):
                     "company": company,
                     "location": location,
                     "source_url": source_url,
-                    "company_url": None,
+                    "tags": [visa_type],
                     "description": None,
                     "salary_range": None,
                     "posted_at": posted_at,

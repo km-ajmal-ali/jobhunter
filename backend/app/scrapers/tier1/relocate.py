@@ -42,83 +42,81 @@ class RelocateMeScraper(BaseScraper):
         "security",
     ]
 
-    async def fetch(self) -> str:
-        """Fetch all job categories and combine HTML."""
-        all_html = ""
+    async def fetch(self) -> dict[str, str]:
+        """Fetch all job categories and return dict keyed by category."""
+        results = {}
         # Fetch base page first (has all jobs without filter)
         response = await self._request(self.SEARCH_URL)
-        all_html += response.text
+        results["all"] = response.text
 
         # Fetch each category page
         for category in self.CATEGORIES:
             url = f"{self.SEARCH_URL}?category%5B%5D={category}"
             response = await self._request(url)
-            all_html += response.text
+            results[category] = response.text
             await asyncio.sleep(1.0)
 
-        return all_html
+        return results
 
-    async def parse(self, raw_data: str) -> list[dict]:
+    async def parse(self, raw_data: dict[str, str]) -> list[dict]:
         """
         Parse relocate.me HTML into job record dicts.
 
         Job cards are div.jobs-list__job elements containing
         title, company, location, and preview text.
+        Tags are derived from the category key.
         """
-        soup = BeautifulSoup(raw_data, "lxml")
         jobs = []
         seen_urls = set()
 
-        for card in soup.select(".jobs-list__job"):
-            try:
-                # Title + URL
-                title_el = card.select_one(".job__title a")
-                if not title_el:
-                    continue
-                href = title_el.get("href", "")
-                if not href or href in seen_urls:
-                    continue
-                seen_urls.add(href)
-                source_url = href if href.startswith("http") else f"{self.BASE_URL}{href}"
+        for category_key, html in raw_data.items():
+            soup = BeautifulSoup(html, "lxml")
 
-                # Title: <b>Title</b> in City
-                title_b = title_el.find("b")
-                title = title_b.get_text(strip=True) if title_b else title_el.get_text(strip=True).split("in")[0].strip()
+            for card in soup.select(".jobs-list__job"):
+                try:
+                    title_el = card.select_one(".job__title a")
+                    if not title_el:
+                        continue
+                    href = title_el.get("href", "")
+                    if not href or href in seen_urls:
+                        continue
+                    seen_urls.add(href)
+                    source_url = href if href.startswith("http") else f"{self.BASE_URL}{href}"
 
-                # Company divs: first is location (country), second is company name
-                company_divs = card.select(".job__company p")
-                location = None
-                company = "Unknown"
-                if len(company_divs) >= 1:
-                    location = company_divs[0].get_text(strip=True)
-                if len(company_divs) >= 2:
-                    company = company_divs[1].get_text(strip=True)
+                    title_b = title_el.find("b")
+                    title = title_b.get_text(strip=True) if title_b else title_el.get_text(strip=True).split("in")[0].strip()
 
-                # Extract city from title_el (e.g. "in London")
-                title_text = title_el.get_text(strip=True)
-                if "in" in title_text:
-                    city_part = title_text.split("in")[-1].strip()
-                    if city_part and location:
-                        location = f"{city_part}, {location}"
+                    company_divs = card.select(".job__company p")
+                    location = None
+                    company = "Unknown"
+                    if len(company_divs) >= 1:
+                        location = company_divs[0].get_text(strip=True)
+                    if len(company_divs) >= 2:
+                        company = company_divs[1].get_text(strip=True)
 
-                # Description preview
-                preview_el = card.select_one(".job__preview")
-                description = preview_el.get_text(strip=True) if preview_el else None
+                    title_text = title_el.get_text(strip=True)
+                    if "in" in title_text:
+                        city_part = title_text.split("in")[-1].strip()
+                        if city_part and location:
+                            location = f"{city_part}, {location}"
 
-                jobs.append({
-                    "title": title,
-                    "company": company,
-                    "location": location,
-                    "source_url": source_url,
-                    "company_url": None,
-                    "description": description,
-                    "salary_range": None,
-                    "posted_at": datetime.now(timezone.utc),
-                    "visa_sponsorship": True,
-                })
+                    preview_el = card.select_one(".job__preview")
+                    description = preview_el.get_text(strip=True) if preview_el else None
 
-            except Exception as e:
-                logger.warning("Error parsing RelocateMe card: %s", e)
-                continue
+                    tag = category_key.replace("-", " ").title() if category_key != "all" else None
+
+                    jobs.append({
+                        "title": title,
+                        "company": company,
+                        "location": location,
+                        "source_url": source_url,
+                        "tags": [tag] if tag else None,
+                        "description": description,
+                        "posted_at": datetime.now(timezone.utc),
+                        "visa_sponsorship": True,
+                    })
+
+                except Exception as e:
+                    logger.warning("Error parsing RelocateMe card: %s", e)
 
         return jobs

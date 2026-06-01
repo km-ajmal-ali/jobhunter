@@ -4,6 +4,7 @@ SQLAlchemy ORM models for the JobHunter database.
 Tables:
   - `jobs` — stores all scraped job listings
   - `scrape_logs` — records each scrape run for monitoring
+  - `locations` — lookup table for job locations (populated after each scrape)
 """
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
+    ARRAY,
     Boolean,
     DateTime,
     Enum,
@@ -43,6 +45,45 @@ class ScrapeStatus(enum.Enum):
     FAILED = "FAILED"
 
 
+class Location(Base):
+    """
+    Lookup table of distinct job locations.
+
+    Populated after each scrape run from active jobs.
+    """
+    __tablename__ = "locations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False, unique=True, index=True)
+    """Location display name (e.g. 'San Francisco, CA')."""
+
+    job_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    """Number of active jobs in this location."""
+
+    def __repr__(self) -> str:
+        return f"<Location id={self.id} name='{self.name}'>"
+
+
+class Country(Base):
+    """
+    Lookup table of countries derived from job locations.
+    """
+    __tablename__ = "countries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    """Country display name (e.g. 'United States')."""
+
+    code: Mapped[str] = mapped_column(String(4), nullable=False, unique=True)
+    """ISO 3166-1 alpha-2 code (e.g. 'US')."""
+
+    job_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    """Number of active jobs in this country."""
+
+    def __repr__(self) -> str:
+        return f"<Country id={self.id} code='{self.code}' name='{self.name}'>"
+
+
 class Job(Base):
     """
     Represents a single job listing scraped from any source.
@@ -53,65 +94,55 @@ class Job(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
-    """Job title (e.g. "Senior Software Engineer")."""
 
     company: Mapped[str] = mapped_column(String(256), nullable=False, index=True)
-    """Company name."""
 
     location: Mapped[str | None] = mapped_column(String(256), nullable=True, index=True)
-    """Job location (e.g. "San Francisco, CA" or "Remote")."""
 
     source: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    """Source identifier (e.g. "linkedin", "indeed", "h1bgrader")."""
 
     source_url: Mapped[str] = mapped_column(String(2048), nullable=False)
-    """Direct URL to the original job listing."""
 
     company_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
-    """Company career page or website URL."""
+
+    apply_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    """Direct application URL (if different from source_url)."""
 
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    """Full job description text."""
 
     salary_range: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    """Salary range if available (e.g. "$120k-$160k")."""
+
+    tags: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    """Tags for department, tech stack, or category (e.g. ['Engineering', 'Python', 'React'])."""
+
+    country_code: Mapped[str | None] = mapped_column(String(4), nullable=True, index=True)
+    """ISO 3166-1 alpha-2 country code derived from location string."""
 
     posted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    """When the job was originally posted (from source)."""
 
     visa_sponsorship: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    """Whether this job explicitly mentions visa sponsorship."""
 
     tier: Mapped[ScrapeTier] = mapped_column(
         Enum(ScrapeTier, name="scrape_tier"),
         nullable=False,
     )
-    """Which tier this job was scraped from."""
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
-    """Soft-delete flag — set to False when a job no longer appears on the source."""
 
     scraped_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
-    """When this record was last updated by a scrape."""
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
-    """When this record was first inserted."""
 
-    # ── Constraints ────────────────────────────────────────────────────
     __table_args__ = (
-        UniqueConstraint(
-            "source",
-            "source_url",
-            name="uq_job_source_url",
-        ),
+        UniqueConstraint("source", "source_url", name="uq_job_source_url"),
     )
 
     def __repr__(self) -> str:

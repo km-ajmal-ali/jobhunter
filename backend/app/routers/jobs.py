@@ -12,16 +12,20 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query, Request, HTTPException
-from sqlalchemy import func, select, case
+from sqlalchemy import func, select, case, desc, nulls_last
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
 from app.limiter import limiter
-from app.models import Job, ScrapeLog, ScrapeStatus
+from app.models import Job, Location, Country, ScrapeLog, ScrapeStatus
 from app.schemas import (
     JobListResponse,
     JobResponse,
+    LocationInfo,
+    LocationsResponse,
+    CountryInfo,
+    CountriesResponse,
     SourceInfo,
     SourcesResponse,
     StatsResponse,
@@ -39,7 +43,7 @@ async def list_jobs(
     q: str | None = Query(None, description="Full-text search across title, company, location"),
     location: str | None = Query(None, description="Filter by location (partial match)"),
     source: str | None = Query(None, description="Filter by source name"),
-    visa_only: bool = Query(False, description="Show only jobs with visa sponsorship"),
+    country: str | None = Query(None, description="Filter by ISO country code (e.g. US, GB, DE)"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     db: AsyncSession = Depends(get_db),
@@ -68,8 +72,8 @@ async def list_jobs(
         query = query.where(Job.location.ilike(f"%{location}%"))
     if source:
         query = query.where(Job.source == source)
-    if visa_only:
-        query = query.where(Job.visa_sponsorship == True)
+    if country:
+        query = query.where(Job.country_code == country.upper())
 
     # Count total matching results
     count_query = select(func.count()).select_from(query.subquery())
@@ -78,7 +82,7 @@ async def list_jobs(
 
     # Paginate
     offset = (page - 1) * page_size
-    query = query.order_by(Job.scraped_at.desc()).offset(offset).limit(page_size)
+    query = query.order_by(nulls_last(desc(Job.posted_at)), desc(Job.scraped_at), desc(Job.id)).offset(offset).limit(page_size)
 
     result = await db.execute(query)
     jobs = result.scalars().all()
@@ -219,4 +223,44 @@ async def get_stats(
     )
 
 
+# ── GET /api/countries ───────────────────────────────────────────────
+
+@router.get("/countries", response_model=CountriesResponse)
+@limiter.limit(settings.API_RATE_LIMIT)
+async def list_countries(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> CountriesResponse:
+    """
+    List all known countries with their job counts.
+    Used by the frontend to populate the country dropdown with flags.
+    """
+    result = await db.execute(
+        select(Country).order_by(Country.job_count.desc())
+    )
+    countries = result.scalars().all()
+    return CountriesResponse(
+        countries=[CountryInfo(name=c.name, code=c.code, job_count=c.job_count) for c in countries],
+    )
+
+
+# ── GET /api/locations ─────────────────────────────────────────────────
+
+@router.get("/locations", response_model=LocationsResponse)
+@limiter.limit(settings.API_RATE_LIMIT)
+async def list_locations(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> LocationsResponse:
+    """
+    List all known job locations with their job counts.
+    Used by the frontend to populate the location dropdown.
+    """
+    result = await db.execute(
+        select(Location).order_by(Location.name)
+    )
+    locations = result.scalars().all()
+    return LocationsResponse(
+        locations=[LocationInfo(name=loc.name, job_count=loc.job_count) for loc in locations],
+    )
 

@@ -5,7 +5,7 @@
  * Uses the native fetch API — no additional HTTP client needed.
  */
 
-import type { Job, JobListResponse, JobSearchParams, SourceInfo, Stats } from "../types";
+import type { Job, JobListResponse, JobSearchParams, CountryInfo, LocationInfo, SourceInfo, Stats } from "../types";
 
 /** Base URL for the API. In dev, this is proxied by Vite. In prod, it's the Nginx path. */
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
@@ -31,7 +31,7 @@ export async function fetchJobs(params: JobSearchParams = {}): Promise<JobListRe
     q: params.q,
     location: params.location,
     source: params.source,
-    visa_only: params.visa_only,
+    country: params.country,
     page: params.page || 1,
     page_size: params.page_size || 20,
   });
@@ -75,4 +75,28 @@ export async function fetchStats(): Promise<Stats> {
     throw new Error(`Failed to fetch stats: ${response.statusText}`);
   }
   return response.json();
+}
+
+/**
+ * Fetch all known countries with job counts.
+ */
+export async function fetchCountries(): Promise<CountryInfo[]> {
+  const response = await fetch(`${API_BASE}/countries`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch countries: ${response.statusText}`);
+  }
+  const data = await response.json();
+  return data.countries;
+}
+
+/**
+ * Fetch all known job locations with job counts.
+ */
+export async function fetchLocations(): Promise<LocationInfo[]> {
+  const response = await fetch(`${API_BASE}/locations`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch locations: ${response.statusText}`);
+  }
+  const data = await response.json();
+  return data.locations;
 }

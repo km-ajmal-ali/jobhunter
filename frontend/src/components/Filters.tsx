@@ -1,63 +1,35 @@
-import { SourceInfo } from "../types";
+import { SourceInfo, CountryInfo } from "../types";
+import SourceSelect from "./SourceSelect";
+import CountrySelect from "./CountrySelect";
 
 interface FiltersProps {
-  /** Available sources to filter by. */
   sources: SourceInfo[];
-  /** Currently selected source. */
+  countries: CountryInfo[];
   selectedSource: string;
-  /** Current location filter text. */
-  location: string;
-  /** Whether visa-only filter is active. */
-  visaOnly: boolean;
-  /** Called when any filter changes. */
-  onFilterChange: (filters: { source?: string; location?: string; visa_only?: boolean }) => void;
+  selectedCountry: string;
+  onFilterChange: (filters: { source?: string; country?: string }) => void;
 }
 
-/**
- * Filter bar with source dropdown, location input, and visa-only toggle.
- */
 export default function Filters({
   sources,
+  countries,
   selectedSource,
-  location,
-  visaOnly,
+  selectedCountry,
   onFilterChange,
 }: FiltersProps) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {/* Source filter */}
-      <select
+      <SourceSelect
+        sources={sources}
         value={selectedSource}
-        onChange={(e) => onFilterChange({ source: e.target.value })}
-        className="input-field w-40"
-      >
-        <option value="">All Sources</option>
-        {sources.map((s) => (
-          <option key={s.name} value={s.name}>
-            {s.name.charAt(0).toUpperCase() + s.name.slice(1)} ({s.total_jobs})
-          </option>
-        ))}
-      </select>
-
-      {/* Location filter */}
-      <input
-        type="text"
-        value={location}
-        onChange={(e) => onFilterChange({ location: e.target.value })}
-        placeholder="Location..."
-        className="input-field w-44"
+        onChange={(name) => onFilterChange({ source: name })}
       />
 
-      {/* Visa sponsorship toggle */}
-      <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
-        <input
-          type="checkbox"
-          checked={visaOnly}
-          onChange={(e) => onFilterChange({ visa_only: e.target.checked })}
-          className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-        />
-        Visa sponsorship only
-      </label>
+      <CountrySelect
+        countries={countries}
+        value={selectedCountry}
+        onChange={(code) => onFilterChange({ country: code })}
+      />
     </div>
   );
 }

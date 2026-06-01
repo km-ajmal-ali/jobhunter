@@ -4,8 +4,8 @@ import Filters from "../components/Filters";
 import JobCard from "../components/JobCard";
 import Pagination from "../components/Pagination";
 import AdSlot from "../components/AdSlot";
-import { fetchJobs, fetchSources, fetchStats } from "../api/jobs";
-import type { Job, JobSearchParams, SourceInfo, Stats } from "../types";
+import { fetchJobs, fetchSources, fetchStats, fetchCountries } from "../api/jobs";
+import type { Job, JobSearchParams, SourceInfo, Stats, CountryInfo } from "../types";
 
 /**
  * Home page — the main landing page of JobHunter.
@@ -22,6 +22,7 @@ export default function Home() {
   // ── State ──────────────────────────────────────────────────────────
   const [jobs, setJobs] = useState<Job[]>([]);
   const [sources, setSources] = useState<SourceInfo[]>([]);
+  const [countries, setCountries] = useState<CountryInfo[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,8 +30,7 @@ export default function Home() {
   // Search / filter state
   const [query, setQuery] = useState("");
   const [selectedSource, setSelectedSource] = useState("");
-  const [location, setLocation] = useState("");
-  const [visaOnly, setVisaOnly] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
 
@@ -53,12 +53,14 @@ export default function Home() {
 
   const loadMeta = useCallback(async () => {
     try {
-      const [sourcesData, statsData] = await Promise.all([
+      const [sourcesData, statsData, countriesData] = await Promise.all([
         fetchSources(),
         fetchStats(),
+        fetchCountries(),
       ]);
       setSources(sourcesData);
       setStats(statsData);
+      setCountries(countriesData);
     } catch (err) {
       console.warn("Failed to load metadata:", err);
     }
@@ -75,19 +77,17 @@ export default function Home() {
   function handleSearch(newQuery: string) {
     setQuery(newQuery);
     setPage(1);
-    loadJobs({ q: newQuery || undefined, source: selectedSource || undefined, location: location || undefined, visa_only: visaOnly, page: 1, page_size: 20 });
+    loadJobs({ q: newQuery || undefined, source: selectedSource || undefined, country: selectedCountry || undefined, page: 1, page_size: 20 });
   }
 
-  function handleFilterChange(filters: { source?: string; location?: string; visa_only?: boolean }) {
+  function handleFilterChange(filters: { source?: string; country?: string }) {
     if (filters.source !== undefined) setSelectedSource(filters.source);
-    if (filters.location !== undefined) setLocation(filters.location);
-    if (filters.visa_only !== undefined) setVisaOnly(filters.visa_only);
+    if (filters.country !== undefined) setSelectedCountry(filters.country);
     setPage(1);
     loadJobs({
       q: query || undefined,
       source: (filters.source ?? selectedSource) || undefined,
-      location: (filters.location ?? location) || undefined,
-      visa_only: filters.visa_only ?? visaOnly,
+      country: (filters.country ?? selectedCountry) || undefined,
       page: 1,
       page_size: 20,
     });
@@ -95,7 +95,7 @@ export default function Home() {
 
   function handlePageChange(newPage: number) {
     setPage(newPage);
-    loadJobs({ q: query || undefined, source: selectedSource || undefined, location: location || undefined, visa_only: visaOnly, page: newPage, page_size: 20 });
+    loadJobs({ q: query || undefined, source: selectedSource || undefined, country: selectedCountry || undefined, page: newPage, page_size: 20 });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -125,9 +125,9 @@ export default function Home() {
       <div className="mb-6">
         <Filters
           sources={sources}
+          countries={countries}
           selectedSource={selectedSource}
-          location={location}
-          visaOnly={visaOnly}
+          selectedCountry={selectedCountry}
           onFilterChange={handleFilterChange}
         />
       </div>

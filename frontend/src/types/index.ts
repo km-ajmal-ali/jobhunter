@@ -12,8 +12,10 @@ export interface Job {
   source: string;
   source_url: string;
   company_url: string | null;
+  apply_url: string | null;
   description: string | null;
   salary_range: string | null;
+  tags: string[] | null;
   posted_at: string | null;
   visa_sponsorship: boolean;
   tier: string;
@@ -46,12 +48,25 @@ export interface Stats {
   last_scrape_at: string | null;
 }
 
+/** A single job location entry. */
+export interface LocationInfo {
+  name: string;
+  job_count: number;
+}
+
+/** A single country entry derived from job locations. */
+export interface CountryInfo {
+  name: string;
+  code: string;
+  job_count: number;
+}
+
 /** Query parameters for job search. */
 export interface JobSearchParams {
   q?: string;
   location?: string;
   source?: string;
-  visa_only?: boolean;
+  country?: string;
   page?: number;
   page_size?: number;
 }

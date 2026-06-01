@@ -27,10 +27,12 @@ from tenacity import (
     wait_exponential,
     retry_if_exception_type,
 )
+import pycountry
 
 from app.config import settings
 from app.database import AsyncSessionLocal
-from app.models import Job, ScrapeLog, ScrapeStatus, ScrapeTier
+from app.location_utils import normalize_location
+from app.models import Job, Location, Country, ScrapeLog, ScrapeStatus, ScrapeTier
 
 logger = logging.getLogger(__name__)
 
@@ -156,6 +158,7 @@ class BaseScraper(ABC):
             data["source"] = self.source
             data["tier"] = self.tier
             data["scraped_at"] = datetime.now(timezone.utc)
+            data["country_code"] = normalize_location(data.get("location"))
 
             # Check if job already exists
             result = await db.execute(
@@ -243,6 +246,54 @@ class BaseScraper(ABC):
                     "Deactivated %d stale jobs from %s", len(stale), source,
                 )
 
+    # ── Location sync ──────────────────────────────────────────────────
+
+    async def sync_locations(self, db: AsyncSession):
+        """
+        Refresh the locations lookup table from active jobs.
+        Removes stale locations and inserts new ones.
+        """
+        await db.execute(Location.__table__.delete())
+        result = await db.execute(
+            select(Job.location, func.count(Job.id))
+            .where(
+                Job.is_active == True,
+                Job.location.isnot(None),
+                Job.location != "",
+            )
+            .group_by(Job.location)
+            .order_by(Job.location)
+        )
+        rows = result.all()
+        for name, count in rows:
+            db.add(Location(name=name, job_count=count))
+
+    # ── Country sync ──────────────────────────────────────────────────
+
+    async def sync_countries(self, db: AsyncSession):
+        """
+        Refresh the countries lookup table from active jobs.
+        """
+        await db.execute(Country.__table__.delete())
+        result = await db.execute(
+            select(Job.country_code, func.count(Job.id))
+            .where(
+                Job.is_active == True,
+                Job.country_code.isnot(None),
+                Job.country_code != "",
+            )
+            .group_by(Job.country_code)
+            .order_by(func.count(Job.id).desc())
+        )
+        rows = result.all()
+        for code, count in rows:
+            try:
+                country = pycountry.countries.lookup(code)
+                name = country.name
+            except LookupError:
+                name = code
+            db.add(Country(code=code, name=name, job_count=count))
+
     # ── Main run method ────────────────────────────────────────────────
 
     @retry(
@@ -309,6 +360,11 @@ class BaseScraper(ABC):
                     jobs_new=jobs_new,
                     duration=duration,
                 )
+                await db.commit()
+
+                # Refresh lookup tables
+                await self.sync_locations(db)
+                await self.sync_countries(db)
                 await db.commit()
 
                 logger.info(

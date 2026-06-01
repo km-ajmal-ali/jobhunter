@@ -94,12 +94,29 @@ class GitHubCompaniesScraper(BaseScraper):
                 posted_at = datetime.fromisoformat(updated.replace("Z", "+00:00"))
             except (ValueError, TypeError):
                 posted_at = datetime.now(timezone.utc)
+        # Tags from departments + metadata
+        tags = []
+        for dept in data.get("departments", []):
+            name = dept.get("name")
+            if name and name not in tags:
+                tags.append(name)
+        for meta in data.get("metadata", []):
+            val = meta.get("value")
+            if val and val not in tags:
+                tags.append(val)
+        # Apply URL: Greenhouse applies at the same URL, but some
+        # companies expose a direct apply link in the API.
+        apply_url = data.get("apply_url")
+        if not apply_url and data.get("absolute_url"):
+            apply_url = data["absolute_url"]
         return {
             "title": data.get("title", "Unknown"),
             "company": raw["company_name"],
             "location": location_str,
             "source_url": data.get("absolute_url", ""),
+            "apply_url": apply_url,
             "description": desc,
+            "tags": tags or None,
             "posted_at": posted_at or datetime.now(timezone.utc),
             "visa_sponsorship": True,
         }
