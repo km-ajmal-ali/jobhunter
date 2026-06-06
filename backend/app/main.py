@@ -21,6 +21,7 @@ from app.config import settings
 from app.limiter import limiter
 from app.routers.jobs import router as jobs_router
 from app.routers.scrape import router as scrape_router
+from app.routers.sitemap import router as sitemap_router
 from app.scrapers.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(
@@ -96,6 +97,9 @@ app.add_middleware(SlowAPIMiddleware)
 
 @app.middleware("http")
 async def validate_origin(request: Request, call_next):
+    # Allow crawlers and direct access to public files
+    if request.url.path in ("/sitemap.xml", "/robots.txt", "/health"):
+        return await call_next(request)
     if not _origin_allowed(request):
         logger.warning("Blocked request from disallowed origin: %s", request.headers.get("origin", "unknown"))
         return JSONResponse(status_code=403, content={"detail": "Forbidden"})
@@ -106,6 +110,7 @@ async def validate_origin(request: Request, call_next):
 
 app.include_router(jobs_router)
 app.include_router(scrape_router)
+app.include_router(sitemap_router)
 
 
 # ── Health Check ────────────────────────────────────────────────────────
