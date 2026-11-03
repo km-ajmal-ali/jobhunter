@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import JobDetail from "./pages/JobDetail";
+import AdsterraBannerSlot from "./components/AdsterraBannerSlot";
 
 /**
  * Root application component.
@@ -17,6 +18,9 @@ export default function App() {
           <Route path="/jobs/:id" element={<JobDetail />} />
         </Routes>
       </main>
+      <div className="flex justify-center py-4">
+        <AdsterraBannerSlot adKey="5cee582654db64e6aeba2c26aa51caa3" width={728} height={90} />
+      </div>
       <footer className="border-t border-gray-200 bg-white py-6 text-center text-sm text-gray-500">
         <p>&copy; {new Date().getFullYear()} JobHunter. All job listings are property of their respective sources.</p>
       </footer>
