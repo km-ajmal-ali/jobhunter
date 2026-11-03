@@ -7,9 +7,9 @@
 #   - frontend: Nginx serving built React SPA + proxy to backend
 #
 # Usage:
-#   docker compose up -d                    # Start all services
-#   docker compose logs -f                  # Tail logs
-#   docker compose exec backend alembic upgrade head   # Run migrations
+#   docker-compose up -d                    # Start all services
+#   docker-compose logs -f                  # Tail logs
+#   docker-compose exec backend alembic upgrade head   # Run migrations
 # =============================================================================
 
 version: "3.9"

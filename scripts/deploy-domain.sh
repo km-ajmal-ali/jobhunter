@@ -53,7 +53,7 @@ echo "  Certbot ready: $(certbot --version 2>/dev/null)"
 
 # ── 3. Stop frontend, get SSL cert ─────────────────────────────────
 echo "[3/6] Obtaining SSL certificate (this validates domain ownership)..."
-docker compose -f "$COMPOSE_FILE" stop frontend 2>/dev/null || true
+docker-compose -f "$COMPOSE_FILE" stop frontend 2>/dev/null || true
 
 certbot certonly --standalone \
   --domain "$DOMAIN" \
@@ -149,7 +149,7 @@ fi
 
 # ── 6. Restart frontend with HTTPS ──────────────────────────────────
 echo "[6/6] Restarting frontend with HTTPS..."
-docker compose -f "$COMPOSE_FILE" up -d frontend
+docker-compose -f "$COMPOSE_FILE" up -d frontend
 
 echo ""
 echo "Domain setup complete!"
