@@ -13,13 +13,14 @@
 #     - SSH_HOST:       VPS IP address
 #     - SSH_USER:       VPS SSH username (usually `root`)
 #     - SSH_PORT:       SSH port (usually 22)
+#     - ALERT_WEBHOOK_URL: Discord webhook URL for health-check alerts (optional)
 # =============================================================================
 
 name: Deploy JobHunter
 
 on:
   push:
-    branches: [main]
+    branches: [release]
   workflow_dispatch: # Allow manual trigger
 
 env:
@@ -73,7 +74,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || '22' }}
-          source: "docker-compose.yml,scripts/deploy-domain.sh"
+          source: "docker-compose.yml,scripts/deploy-domain.sh,scripts/check-health.sh"
           target: "/opt/jobhunter"
           strip_components: 0
 
@@ -101,6 +102,7 @@ jobs:
               echo "SCRAPE_API_KEY=$(openssl rand -hex 16)" >> .env
               echo "GHCR_OWNER=${{ env.GHCR_OWNER }}" >> .env
               echo "SCRAPER_TIER2_ENABLED=false" >> .env
+              echo "ALERT_WEBHOOK_URL=${{ secrets.ALERT_WEBHOOK_URL }}" >> .env
               echo ".env created with defaults"
             fi
 
@@ -109,6 +111,8 @@ jobs:
               grep -q "CORS_ORIGINS=.*visajobsforyou.com" .env || echo "CORS_ORIGINS=http://localhost,https://visajobsforyou.com" >> .env
               grep -q "ALLOWED_ORIGINS=" .env || echo "ALLOWED_ORIGINS=https://visajobsforyou.com,http://localhost" >> .env
               grep -q "SCRAPE_API_KEY=" .env || echo "SCRAPE_API_KEY=$(openssl rand -hex 16)" >> .env
+              sed -i "s|^ALERT_WEBHOOK_URL=.*|ALERT_WEBHOOK_URL=${{ secrets.ALERT_WEBHOOK_URL }}|" .env
+              grep -q "ALERT_WEBHOOK_URL=" .env || echo "ALERT_WEBHOOK_URL=${{ secrets.ALERT_WEBHOOK_URL }}" >> .env
             fi
 
             # Log in to GHCR
@@ -125,5 +129,10 @@ jobs:
 
             # Run database migrations
             docker compose run --rm backend alembic upgrade head || echo "Migrations skipped (check manually)"
+
+            # Install health-check cron (every 5 min, idempotent)
+            chmod +x scripts/check-health.sh
+            CRON_LINE="*/5 * * * * /opt/jobhunter/scripts/check-health.sh >> /var/log/jobhunter-health.log 2>&1"
+            ( crontab -l 2>/dev/null | grep -vF "check-health.sh" ; echo "$CRON_LINE" ) | crontab -
 
             echo "✅ Deployment complete: $(date)"
