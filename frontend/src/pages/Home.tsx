@@ -4,6 +4,7 @@ import Filters from "../components/Filters";
 import JobCard from "../components/JobCard";
 import Pagination from "../components/Pagination";
 import AdSlot from "../components/AdSlot";
+import AdsterraSlot from "../components/AdsterraSlot";
 import { fetchJobs, fetchSources, fetchStats, fetchCountries } from "../api/jobs";
 import type { Job, JobSearchParams, SourceInfo, Stats, CountryInfo } from "../types";
 
@@ -115,6 +116,13 @@ export default function Home() {
           One Search. Thousands of Visas. Our automated scrapers hunt for verified sponsorship opportunities every single day.
         </p>
       </div>
+
+      {/* ── Adsterra Ad ───────────────────────────────────────────── */}
+      <AdsterraSlot
+        containerId="eae505e7ed90a116a0ce10cedc3824ba"
+        scriptSrc="https://bauval.org/21/eae505e7ed90a116a0ce10cedc3824ba"
+        className="mb-6"
+      />
 
       {/* ── Search ────────────────────────────────────────────────── */}
       <div className="mb-6 flex justify-center">
