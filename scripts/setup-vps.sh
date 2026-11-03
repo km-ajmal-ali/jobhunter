@@ -34,13 +34,21 @@ else
   echo "  Docker already installed: $(docker --version)"
 fi
 
-# ── 3. Install Docker Compose ─────────────────────────────────────────
+# ── 3. Install Docker Compose plugin ─────────────────────────────────
 echo "[3/6] Installing Docker Compose..."
-if ! command -v docker-compose &>/dev/null; then
-  apt-get install -y -qq docker-compose
-  echo "  Docker Compose installed: $(docker-compose version)"
+if ! docker compose version &>/dev/null; then
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  chmod a+r /etc/apt/keyrings/docker.asc
+  echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    tee /etc/apt/sources.list.d/docker.list > /dev/null
+  apt-get update -qq
+  apt-get install -y -qq docker-compose-plugin
+  echo "  Docker Compose installed: $(docker compose version)"
 else
-  echo "  Docker Compose already installed: $(docker-compose version)"
+  echo "  Docker Compose already installed: $(docker compose version)"
 fi
 
 # ── 4. Create deployment directory ───────────────────────────────────
@@ -135,7 +143,7 @@ echo "     - SSH_USER (root)"
 echo "  3. Push to main branch → auto-deploys via GitHub Actions"
 echo "  4. To deploy manually:"
 echo "     docker login ghcr.io"
-echo "     docker-compose pull"
-echo "     docker-compose up -d"
-echo "     docker-compose exec backend alembic upgrade head"
+echo "     docker compose pull"
+echo "     docker compose up -d"
+echo "     docker compose exec backend alembic upgrade head"
 echo ""
