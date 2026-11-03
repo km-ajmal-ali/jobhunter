@@ -33,6 +33,7 @@ services:
       retries: 5
     ports:
       - "127.0.0.1:5432:5432"  # Only localhost for security
+    mem_limit: 300m
 
   # ── Backend ──────────────────────────────────────────────────────────
   backend:
@@ -55,6 +56,7 @@ services:
       PROXY_LIST: ${PROXY_LIST:-}
     ports:
       - "127.0.0.1:8000:8000"  # Internal — Nginx proxies to this
+    mem_limit: 450m
 
   # ── Frontend / Reverse Proxy ─────────────────────────────────────────
   frontend:
@@ -68,6 +70,7 @@ services:
       - backend
     ports:
       - "0.0.0.0:80:80"
+    mem_limit: 100m
 volumes:
   pgdata:
     driver: local
