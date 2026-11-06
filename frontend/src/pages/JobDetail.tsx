@@ -1,9 +1,53 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { fetchJob } from "../api/jobs";
 import AdSlot from "../components/AdSlot";
 import SafeHtml from "../components/SafeHtml";
 import type { Job } from "../types";
+
+/** Strip HTML tags and collapse whitespace, truncated for use as a meta description. */
+function toPlainSummary(html: string, maxLen = 160): string {
+  const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return text.length > maxLen ? `${text.slice(0, maxLen - 1).trimEnd()}…` : text;
+}
+
+/** Build JSON-LD JobPosting structured data for Google for Jobs rich results. */
+function buildJobPostingSchema(job: Job) {
+  const schema: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: job.title,
+    description: job.description || job.title,
+    identifier: {
+      "@type": "PropertyValue",
+      name: job.source,
+      value: String(job.id),
+    },
+    datePosted: (job.posted_at || job.scraped_at).slice(0, 10),
+    hiringOrganization: {
+      "@type": "Organization",
+      name: job.company,
+      ...(job.company_url ? { sameAs: job.company_url } : {}),
+    },
+    directApply: Boolean(job.apply_url),
+    url: `https://www.visajobsforyou.com/jobs/${job.id}`,
+  };
+
+  if (job.location) {
+    schema.jobLocation = {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: job.location,
+      },
+    };
+  } else {
+    schema.jobLocationType = "TELECOMMUTE";
+  }
+
+  return schema;
+}
 
 /**
  * Job detail page — full information about a single job listing.
@@ -87,8 +131,33 @@ export default function JobDetail() {
     return colors[source] || "bg-gray-100 text-gray-800";
   }
 
+  const pageTitle = `${job.title} at ${job.company} | JobHunter`;
+  const pageDescription = job.description
+    ? toPlainSummary(job.description)
+    : `${job.title} at ${job.company}${job.location ? ` in ${job.location}` : ""}. Visa sponsorship jobs on JobHunter.`;
+  const canonicalUrl = `https://www.visajobsforyou.com/jobs/${job.id}`;
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <link rel="canonical" href={canonicalUrl} />
+
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+
+        <script type="application/ld+json">
+          {JSON.stringify(buildJobPostingSchema(job))}
+        </script>
+      </Helmet>
+
       {/* ── Breadcrumb ────────────────────────────────────────────── */}
       <Link
         to="/"
