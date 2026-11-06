@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { Helmet } from "react-helmet-async";
 import SearchBar from "../components/SearchBar";
 import Filters from "../components/Filters";
 import JobCard from "../components/JobCard";
@@ -104,6 +105,15 @@ export default function Home() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <Helmet>
+        <title>JobHunter - Visa Sponsorship Jobs</title>
+        <meta
+          name="description"
+          content="Find the latest job openings with visa sponsorship. Search jobs from multiple sources including LinkedIn, Indeed, Glassdoor, and H1B databases."
+        />
+        <link rel="canonical" href="https://www.visajobsforyou.com/" />
+      </Helmet>
+
       {/* ── Banner Ad ─────────────────────────────────────────────── */}
       <AdSlot slot="1234567890" format="horizontal" className="mb-6" />
 
@@ -116,13 +126,6 @@ export default function Home() {
           One Search. Thousands of Visas. Our automated scrapers hunt for verified sponsorship opportunities every single day.
         </p>
       </div>
-
-      {/* ── Adsterra Ad ───────────────────────────────────────────── */}
-      <AdsterraSlot
-        containerId="eae505e7ed90a116a0ce10cedc3824ba"
-        scriptSrc="https://bauval.org/21/eae505e7ed90a116a0ce10cedc3824ba"
-        className="mb-6"
-      />
 
       {/* ── Search ────────────────────────────────────────────────── */}
       <div className="mb-6 flex justify-center">
@@ -210,6 +213,13 @@ export default function Home() {
           </div>
         </>
       )}
+
+      {/* ── Adsterra Ad (native 4x4) ──────────────────────────────── */}
+      <AdsterraSlot
+        containerId="eae505e7ed90a116a0ce10cedc3824ba"
+        scriptSrc="https://bauval.org/21/eae505e7ed90a116a0ce10cedc3824ba"
+        className="mt-6"
+      />
     </div>
   );
 }
