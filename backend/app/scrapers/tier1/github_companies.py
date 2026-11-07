@@ -81,8 +81,8 @@ class GitHubCompaniesScraper(BaseScraper):
     def _parse_greenhouse(self, raw: dict) -> dict:
         """Parse a single Greenhouse API job object into a job record."""
         data = raw["raw"]
-        location = data.get("location", {})
-        offices = [o["name"] for o in data.get("offices", [])]
+        location = data.get("location") or {}
+        offices = [o["name"] for o in (data.get("offices") or [])]
         loc_parts = [location.get("name", "")] if location.get("name") else offices
         location_str = ", ".join(loc_parts) if loc_parts else None
         content = data.get("content", "")
@@ -96,13 +96,13 @@ class GitHubCompaniesScraper(BaseScraper):
                 posted_at = datetime.now(timezone.utc)
         # Tags from departments + metadata
         tags = []
-        for dept in data.get("departments", []):
+        for dept in (data.get("departments") or []):
             name = dept.get("name")
             if name and name not in tags:
                 tags.append(name)
-        for meta in data.get("metadata", []):
+        for meta in (data.get("metadata") or []):
             val = meta.get("value")
-            if val and val not in tags:
+            if isinstance(val, str) and val and val not in tags:
                 tags.append(val)
         # Apply URL: Greenhouse applies at the same URL, but some
         # companies expose a direct apply link in the API.
@@ -144,7 +144,13 @@ class GitHubCompaniesScraper(BaseScraper):
         return grouped
 
     async def save_jobs(self, jobs_data: dict, db: AsyncSession) -> tuple[int, int]:
-        """Insert or update per-company job records with company-specific source."""
+        """Insert or update per-company job records with company-specific source.
+
+        Each job is saved inside its own SAVEPOINT (begin_nested) so a bad
+        row (e.g. a malformed field from one company's API) only rolls back
+        that one job instead of poisoning the whole transaction and losing
+        every other company's results.
+        """
         total_found = 0
         total_new = 0
         for company_slug, job_list in jobs_data.items():
@@ -153,17 +159,29 @@ class GitHubCompaniesScraper(BaseScraper):
                 data["tier"] = self.tier
                 data["scraped_at"] = datetime.now(timezone.utc)
                 total_found += 1
-                result = await db.execute(
-                    select(Job).where(
-                        Job.source == data["source"],
-                        Job.source_url == data["source_url"],
+                is_new = False
+                try:
+                    async with db.begin_nested():
+                        result = await db.execute(
+                            select(Job).where(
+                                Job.source == data["source"],
+                                Job.source_url == data["source_url"],
+                            )
+                        )
+                        existing = result.scalar_one_or_none()
+                        if existing:
+                            for key, value in data.items():
+                                setattr(existing, key, value)
+                        else:
+                            db.add(Job(**data))
+                            is_new = True
+                        await db.flush()
+                except Exception as e:
+                    logger.warning(
+                        "Failed to save job %s (%s): %s",
+                        data.get("source_url"), company_slug, e,
                     )
-                )
-                existing = result.scalar_one_or_none()
-                if existing:
-                    for key, value in data.items():
-                        setattr(existing, key, value)
-                else:
-                    db.add(Job(**data))
+                    continue
+                if is_new:
                     total_new += 1
         return total_found, total_new
