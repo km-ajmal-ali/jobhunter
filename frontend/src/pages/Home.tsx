@@ -6,6 +6,8 @@ import JobCard from "../components/JobCard";
 import Pagination from "../components/Pagination";
 import AdSlot from "../components/AdSlot";
 import AdsterraSlot from "../components/AdsterraSlot";
+import AdsterraBannerSlot from "../components/AdsterraBannerSlot";
+import useIsMobile from "../hooks/useIsMobile";
 import { fetchJobs, fetchSources, fetchStats, fetchCountries } from "../api/jobs";
 import type { Job, JobSearchParams, SourceInfo, Stats, CountryInfo } from "../types";
 
@@ -21,6 +23,8 @@ import type { Job, JobSearchParams, SourceInfo, Stats, CountryInfo } from "../ty
  *   - Footer stats
  */
 export default function Home() {
+  const isMobile = useIsMobile();
+
   // ── State ──────────────────────────────────────────────────────────
   const [jobs, setJobs] = useState<Job[]>([]);
   const [sources, setSources] = useState<SourceInfo[]>([]);
@@ -104,7 +108,7 @@ export default function Home() {
   // ── Render ─────────────────────────────────────────────────────────
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
       <Helmet>
         <title>JobHunter - Visa Sponsorship Jobs</title>
         <meta
@@ -118,13 +122,22 @@ export default function Home() {
       <AdSlot slot="1234567890" format="horizontal" className="mb-6" />
 
       {/* ── Hero Section ──────────────────────────────────────────── */}
-      <div className="mb-8 text-center">
+      <div className="mb-6 text-center sm:mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
           Find Jobs with Visa Sponsorship
         </h1>
         <p className="mt-2 text-lg text-gray-600">
           One Search. Thousands of Visas. Our automated scrapers hunt for verified sponsorship opportunities every single day.
         </p>
+      </div>
+
+      {/* ── Adsterra Banner (responsive: 320x50 mobile / 728x90 desktop) ── */}
+      <div className="mb-6 flex justify-center">
+        {isMobile ? (
+          <AdsterraBannerSlot adKey="ac137bf3f4da05de83e37f2328f6a4e2" width={320} height={50} />
+        ) : (
+          <AdsterraBannerSlot adKey="5cee582654db64e6aeba2c26aa51caa3" width={728} height={90} />
+        )}
       </div>
 
       {/* ── Search ────────────────────────────────────────────────── */}
@@ -208,7 +221,7 @@ export default function Home() {
           )}
 
           {/* Pagination */}
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <Pagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
           </div>
         </>
@@ -218,7 +231,7 @@ export default function Home() {
       <AdsterraSlot
         containerId="eae505e7ed90a116a0ce10cedc3824ba"
         scriptSrc="https://bauval.org/21/eae505e7ed90a116a0ce10cedc3824ba"
-        className="mt-6"
+        className="mt-4 sm:mt-6"
       />
     </div>
   );
