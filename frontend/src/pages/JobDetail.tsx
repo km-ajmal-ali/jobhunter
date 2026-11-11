@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { fetchJob } from "../api/jobs";
 import AdSlot from "../components/AdSlot";
+import AdsterraSlot from "../components/AdsterraSlot";
 import SafeHtml from "../components/SafeHtml";
 import type { Job } from "../types";
 
@@ -276,6 +277,13 @@ export default function JobDetail() {
           </div>
         </div>
       </div>
+
+      {/* ── Adsterra Ad (native 4x4) ──────────────────────────────── */}
+      <AdsterraSlot
+        containerId="eae505e7ed90a116a0ce10cedc3824ba"
+        scriptSrc="https://bauval.org/21/eae505e7ed90a116a0ce10cedc3824ba"
+        className="mt-4 sm:mt-6"
+      />
     </div>
   );
 }
