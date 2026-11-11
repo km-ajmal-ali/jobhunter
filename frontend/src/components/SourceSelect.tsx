@@ -59,7 +59,7 @@ export default function SourceSelect({ sources, value, onChange }: SourceSelectP
               <button
                 type="button"
                 onClick={() => { onChange(s.name); setOpen(false); }}
-                className={`flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 ${s.name === value ? "bg-primary-50 font-medium" : ""}`}
+                className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-gray-100 ${s.name === value ? "bg-primary-50 font-medium" : ""}`}
               >
                 <span className="truncate flex-1">{s.name.charAt(0).toUpperCase() + s.name.slice(1)}</span>
                 <span className="text-gray-400 text-xs">{s.total_jobs}</span>
