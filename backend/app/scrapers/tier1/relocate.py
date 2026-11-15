@@ -119,4 +119,27 @@ class RelocateMeScraper(BaseScraper):
                 except Exception as e:
                     logger.warning("Error parsing RelocateMe card: %s", e)
 
+        await self._fill_full_descriptions(jobs)
         return jobs
+
+    async def _fill_full_descriptions(self, jobs: list[dict]) -> None:
+        """
+        The listing card only exposes a 2-line preview (.job__preview).
+        Fetch each job's detail page and replace it with the full
+        .job-info__description body.
+        """
+        for job in jobs:
+            try:
+                response = await self._request(job["source_url"])
+                detail_soup = BeautifulSoup(response.text, "lxml")
+                desc_el = detail_soup.select_one(".job-info__description")
+                if desc_el:
+                    full_text = desc_el.get_text("\n", strip=True)
+                    if full_text:
+                        job["description"] = full_text
+            except Exception as e:
+                logger.warning(
+                    "Error fetching RelocateMe detail page %s: %s",
+                    job.get("source_url"), e,
+                )
+            await asyncio.sleep(0.5)

@@ -139,7 +139,7 @@ export default function JobDetail() {
   const canonicalUrl = `https://www.visajobsforyou.com/jobs/${job.id}`;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
